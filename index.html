@@ -1,1 +1,1042 @@
+<!DOCTYPE html>
+<html lang="es">
 
+<head> 
+  <base
+    href="https://d16ilfvy4mv02r.cloudfront.net/workspaces/mfIiG3VF8g4tmRcfEHWqTu0DYB0dapzC/ba763099-4744-402b-b257-7814ca9c9394/files/">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Andreani — Migración CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAoz3zm7N1oit_6uflTDCQoFHHf9fAGK9s",
+      authDomain: "andreani-migracion.firebaseapp.com",
+      projectId: "andreani-migracion",
+      storageBucket: "andreani-migracion.firebasestorage.app",
+      messagingSenderId: "665243977137",
+      appId: "1:665243977137:web:6e92f520ffb54379fee990"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    window.__firebaseApp = app;
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,700;1,900&display=swap');
+
+    * {
+      font-family: 'Inter', sans-serif;
+      box-sizing: border-box;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 10px;
+    }
+
+    .fade-in {
+      animation: fadeIn .25s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .pulse-rec {
+      animation: pulseRec 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulseRec {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: .4;
+      }
+    }
+
+    select {
+      -webkit-appearance: none;
+    }
+
+    @media print {
+      body {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-[#F1F5F9]">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const Icon = ({ name, size = 20, className = '' }) => {
+      const el = useRef(null);
+      useEffect(() => {
+        if (el.current && lucide && lucide[name]) {
+          el.current.innerHTML = '';
+          const svg = lucide.createElement(lucide[name]);
+          svg.setAttribute('width', size); svg.setAttribute('height', size);
+          svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '2');
+          svg.setAttribute('fill', 'none');
+          el.current.appendChild(svg);
+        }
+      }, [name, size]);
+      return <span ref={el} className={`inline-flex items-center justify-center ${className}`} />;
+    };
+
+    const LS_KEY = 'andreani_migracion_v3';
+    const loadData = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || { naves: [], clients: [], meetings: [] }; } catch { return { naves: [], clients: [], meetings: [] }; } };
+    const saveData = (d) => localStorage.setItem(LS_KEY, JSON.stringify(d));
+    const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+    const FASES_DATA = [
+      {
+        id: 0, label: "FASE 0", name: "ALINEAMIENTO", duration: "2 Semanas",
+        color: "bg-slate-700", hex: "#334155", lightBg: "bg-slate-100", lightText: "text-slate-700",
+        icon: "AlignCenter",
+        objetivo: "Acordar cómo se va a trabajar y evitar bloqueos internos.",
+        incluye: ["Alineación con Comercial", "Alineación con Operaciones", "Definición clara de funcionamiento: Canal único (CRM), SLA, Qué se deja de hacer"],
+        entregables: ["Reglas de trabajo definidas", "Cliente seleccionado para iniciar"]
+      },
+      {
+        id: 1, label: "FASE 1", name: "RELEVAMIENTO", duration: "1 Semana",
+        color: "bg-blue-600", hex: "#2563EB", lightBg: "bg-blue-50", lightText: "text-blue-700",
+        icon: "Search",
+        objetivo: "Entender la operación actual y llevarla al modelo estándar.",
+        incluye: ["Relevamiento de gestión actual (mail, seguimiento, excepciones)", "Identificación de desvíos vs modelo CRM", "Definición de cómo se va a operar dentro del esquema estándar"],
+        entregables: ["Informe de relevamiento completado"]
+      },
+      {
+        id: 2, label: "FASE 2", name: "CAPACITACIÓN", duration: "2 Semanas",
+        color: "bg-emerald-600", hex: "#059669", lightBg: "bg-emerald-50", lightText: "text-emerald-700",
+        icon: "GraduationCap",
+        objetivo: "Asegurar el uso correcto del portal según el modelo definido.",
+        incluye: ["Capacitación interna: gestión de casos, uso de portal y SLA de respuesta", "Capacitación al cliente: creación, seguimiento y respuesta de casos", "Uso correcto del árbol de asuntos (solicitudes y reclamos)"],
+        entregables: ["Usuarios activos (cliente + internos)", "Cliente capacitado", "Operación alineada en uso de portal", "Casos de prueba realizados correctamente"]
+      },
+      {
+        id: 3, label: "FASE 3", name: "MONITOREO", duration: "2 Semanas",
+        color: "bg-orange-500", hex: "#F97316", lightBg: "bg-orange-50", lightText: "text-orange-700",
+        icon: "Activity",
+        objetivo: "Forzar el uso del CRM en la práctica diaria.",
+        incluye: ["Monitoreo diario de casos", "Seguimiento de uso por parte del cliente", "Intervención ante desvíos", "No se gestionan casos por canales informales (mail, teléfono, WhatsApp)"],
+        entregables: ["Cliente operando en CRM", "Desvíos identificados y corregidos"]
+      },
+      {
+        id: 4, label: "FASE 4", name: "CORTE", duration: "1 Semana",
+        color: "bg-red-600", hex: "#DC2626", lightBg: "bg-red-50", lightText: "text-red-700",
+        icon: "Scissors",
+        objetivo: "Consolidar el modelo y eliminar definitivamente el esquema anterior.",
+        incluye: ["Corte total de gestión por mail", "Operación 100% por CRM", "Seguimiento de indicadores: casos ingresados, % resolución, tiempo de resolución"],
+        entregables: ["Cliente operando bajo modelo estándar", "Proceso estabilizado"]
+      }
+    ];
+
+    const FASE_LABELS = FASES_DATA.map(f => `${f.label}: ${f.name}`);
+    const getFaseIndex = (faseLabel) => {
+      if (!faseLabel) return 0;
+      const idx = FASES_DATA.findIndex(f => faseLabel.includes(f.name));
+      return idx === -1 ? 0 : idx;
+    };
+
+    // ── PDF Export ────────────────────────────────────────────────
+    const exportPDF = (meetings, clientName, clientFase, clientStatus, filename) => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+      const W = 210, margin = 20, contentW = W - margin * 2;
+      const addPage = (first = false) => {
+        if (!first) doc.addPage();
+        doc.setFillColor(220, 38, 38); doc.rect(0, 0, W, 28, 'F');
+        doc.setFillColor(180, 20, 20); doc.rect(0, 0, 6, 28, 'F');
+        doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bolditalic'); doc.setFontSize(16);
+        doc.text('ANDREANI', 14, 12);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+        doc.text('SISTEMA DE MIGRACIÓN — MINUTAS', 14, 20);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+        doc.text(new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' }), W - margin, 12, { align: 'right' });
+        doc.text('CONFIDENCIAL', W - margin, 20, { align: 'right' });
+        doc.setFillColor(245, 245, 245); doc.rect(0, 285, W, 12, 'F');
+        doc.setTextColor(180, 180, 180); doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
+        doc.text('Andreani Grupo Logístico — Documento generado automáticamente', margin, 291);
+        doc.text(`Pág. ${doc.internal.getNumberOfPages()}`, W - margin, 291, { align: 'right' });
+      };
+      addPage(true);
+      let y = 38;
+      doc.setFillColor(248, 250, 252); doc.roundedRect(margin, y, contentW, 24, 3, 3, 'F');
+      doc.setDrawColor(226, 232, 240); doc.roundedRect(margin, y, contentW, 24, 3, 3, 'S');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(15, 23, 42);
+      doc.text(clientName, margin + 6, y + 9);
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
+      doc.text(`Fase: ${clientFase}`, margin + 6, y + 17);
+      doc.text(`Estado: ${clientStatus}`, margin + 6 + 70, y + 17);
+      doc.text(`Total minutas: ${meetings.length}`, margin + 6 + 140, y + 17);
+      y += 32;
+      meetings.forEach((m, idx) => {
+        const lines = doc.splitTextToSize(m.summary, contentW - 12);
+        const blockH = 10 + lines.length * 4.5 + 6;
+        if (y + blockH > 278) { addPage(); y = 36; }
+        doc.setFillColor(220, 38, 38); doc.roundedRect(margin, y, contentW, 9, 2, 2, 'F');
+        doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+        doc.text(`MINUTA ${idx + 1} — ${m.date}`, margin + 4, y + 6);
+        y += 9;
+        doc.setFillColor(255, 255, 255); doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(margin, y, contentW, lines.length * 4.5 + 8, 0, 2, 'FD');
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(51, 65, 85);
+        doc.text(lines, margin + 5, y + 6);
+        y += lines.length * 4.5 + 14;
+      });
+      doc.save(filename);
+    };
+
+    const exportWord = (meetings, clientName, clientFase, clientStatus, filename) => {
+      const minutasHtml = meetings.map((m, i) => `<h2 style="color:#dc2626;font-size:13pt;margin-top:20pt;border-bottom:2px solid #dc2626;padding-bottom:4pt;">MINUTA ${i + 1} — ${m.date}</h2><p style="font-size:10pt;color:#334155;white-space:pre-wrap;line-height:1.6;">${m.summary.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`).join('');
+      const html = `<html><head><meta charset="utf-8"/><style>body{font-family:Arial;margin:2cm;}.hdr{background:#dc2626;color:white;padding:16pt;margin:-2cm -2cm 30pt;}.cb{background:#f8fafc;border:1px solid #e2e8f0;padding:12pt;margin-bottom:20pt;}</style></head><body><div class="hdr"><h1 style="margin:0;font-size:18pt;">ANDREANI — MIGRACIÓN</h1><p style="margin:4pt 0 0;font-size:9pt;opacity:.8;">Minutas — ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</p></div><div class="cb"><h2 style="margin:0 0 4pt;font-size:14pt;">${clientName}</h2><p style="margin:0;font-size:9pt;color:#64748b;">Fase: <strong>${clientFase}</strong> | Estado: <strong>${clientStatus}</strong></p></div>${minutasHtml}</body></html>`;
+      const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
+    // ── Modals ─────────────────────────────────────────────────────
+    const Modal = ({ isOpen, onClose, title, placeholder, onConfirm, value, setValue, confirmLabel = 'Crear' }) => {
+      if (!isOpen) return null;
+      return (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[300] flex items-center justify-center p-6" onClick={onClose}>
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 fade-in" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-black uppercase italic tracking-tight">{title}</h3>
+              <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><Icon name="X" size={18} /></button>
+            </div>
+            <input autoFocus className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-semibold focus:border-red-500 focus:outline-none transition-all mb-5"
+              placeholder={placeholder} value={value} onChange={e => setValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && onConfirm()} />
+            <div className="flex gap-3">
+              <button onClick={onClose} className="flex-1 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all border border-slate-100">Cancelar</button>
+              <button onClick={onConfirm} className="flex-1 py-3.5 rounded-2xl bg-red-600 text-white font-black text-xs uppercase tracking-widest hover:bg-red-700 shadow-lg transition-all">{confirmLabel}</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const ConfirmModal = ({ isOpen, onClose, onConfirm, text }) => {
+      if (!isOpen) return null;
+      return (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[300] flex items-center justify-center p-6" onClick={onClose}>
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 fade-in text-center" onClick={e => e.stopPropagation()}>
+            <div className="w-14 h-14 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="AlertTriangle" size={26} /></div>
+            <h3 className="text-base font-black uppercase italic mb-2">¿Confirmar eliminación?</h3>
+            <p className="text-sm text-slate-400 mb-7">{text}</p>
+            <div className="flex gap-3">
+              <button onClick={onClose} className="flex-1 py-3.5 rounded-2xl font-black text-xs uppercase text-slate-400 hover:bg-slate-50 border border-slate-100 transition-all">Cancelar</button>
+              <button onClick={onConfirm} className="flex-1 py-3.5 rounded-2xl bg-red-600 text-white font-black text-xs uppercase hover:bg-red-700 transition-all">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const SettingsModal = ({ isOpen, onClose, apiKey, setApiKey }) => {
+      const [tmp, setTmp] = useState(apiKey);
+      if (!isOpen) return null;
+      const save = () => { setApiKey(tmp); localStorage.setItem('andreani_gemini_key', tmp); onClose(); };
+      return (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[300] flex items-center justify-center p-6" onClick={onClose}>
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 fade-in" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-black uppercase italic tracking-tight">API Key Gemini</h3>
+              <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><Icon name="X" size={18} /></button>
+            </div>
+            <p className="text-xs text-slate-400 mb-5">Ingresá tu API Key de Gemini. Obtené una gratis en <a href="https://aistudio.google.com/apikey" target="_blank" className="text-red-600 underline">aistudio.google.com</a></p>
+            <input className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-mono focus:border-red-500 focus:outline-none transition-all mb-5"
+              placeholder="AIza..." value={tmp} onChange={e => setTmp(e.target.value)} type="password" />
+            <button onClick={save} className="w-full py-3.5 rounded-2xl bg-slate-900 text-white font-black text-xs uppercase hover:bg-red-600 transition-all">Guardar</button>
+          </div>
+        </div>
+      );
+    };
+
+    const ExportModal = ({ isOpen, onClose, meeting, allMeetings, clientName, clientFase, clientStatus, showToast }) => {
+      if (!isOpen) return null;
+      const isAll = !meeting;
+      const meetings = isAll ? allMeetings : [meeting];
+      const label = isAll ? `todas las minutas (${allMeetings.length})` : `minuta del ${meeting.date}`;
+      const safeName = clientName.replace(/[^a-zA-Z0-9]/g, '_');
+      const handlePDF = () => {
+        exportPDF(meetings, clientName, clientFase, clientStatus, `Andreani_${safeName}${isAll ? '_TODAS' : '_' + meeting.date.replace(/\//g, '-')}.pdf`);
+        showToast('PDF descargado ✓'); onClose();
+      };
+      const handleWord = () => {
+        exportWord(meetings, clientName, clientFase, clientStatus, `Andreani_${safeName}${isAll ? '_TODAS' : '_' + meeting.date.replace(/\//g, '-')}.doc`);
+        showToast('Word descargado ✓'); onClose();
+      };
+      return (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[300] flex items-center justify-center p-6" onClick={onClose}>
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-7 fade-in" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-black uppercase italic">Exportar</h3>
+              <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><Icon name="X" size={18} /></button>
+            </div>
+            <p className="text-xs text-slate-400 mb-6">Exportar <strong className="text-slate-700">{label}</strong> — <strong className="text-slate-700">{clientName}</strong>.</p>
+            <button onClick={handlePDF} className="w-full mb-3 p-4 rounded-2xl bg-red-50 border-2 border-red-100 hover:border-red-400 transition-all flex items-center gap-4 group">
+              <div className="w-10 h-10 bg-red-600 text-white rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><Icon name="FileText" size={20} /></div>
+              <div className="text-left flex-1">
+                <div className="font-black text-sm uppercase">Descargar PDF</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Con branding Andreani</div>
+              </div>
+              <Icon name="Download" size={16} className="text-red-400" />
+            </button>
+            <button onClick={handleWord} className="w-full p-4 rounded-2xl bg-blue-50 border-2 border-blue-100 hover:border-blue-400 transition-all flex items-center gap-4 group">
+              <div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><Icon name="FileType2" size={20} /></div>
+              <div className="text-left flex-1">
+                <div className="font-black text-sm uppercase">Descargar Word</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Compatible con Microsoft Word</div>
+              </div>
+              <Icon name="Download" size={16} className="text-blue-400" />
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    // ── Fase Roadmap Panel ─────────────────────────────────────────
+    const FaseRoadmap = ({ currentFaseIdx = -1 }) => (
+      <div className="space-y-2">
+        {FASES_DATA.map((f, i) => {
+          const isActive = i === currentFaseIdx;
+          const isDone = currentFaseIdx > -1 && i < currentFaseIdx;
+          return (
+            <div key={f.id} className={`rounded-2xl border-2 transition-all overflow-hidden ${isActive ? 'border-slate-700 shadow-md' : isDone ? 'border-slate-200 opacity-70' : 'border-slate-100'}`}>
+              <div className={`flex items-center gap-3 px-4 py-3 ${isActive ? f.color : isDone ? 'bg-slate-100' : 'bg-white'}`}>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-white/20' : isDone ? 'bg-emerald-500' : 'bg-slate-200'}`}>
+                  {isDone ? <Icon name="Check" size={12} className="text-white" /> : <span className={`text-[10px] font-black ${isActive ? 'text-white' : 'text-slate-500'}`}>{f.id}</span>}
+                </div>
+                <div className={`flex-1 ${isActive ? 'text-white' : 'text-slate-700'}`}>
+                  <div className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-white/70' : 'text-slate-400'}`}>{f.label} · {f.duration}</div>
+                  <div className="font-black text-sm uppercase leading-tight">{f.name}</div>
+                </div>
+                {isActive && <span className="text-[9px] bg-white/20 text-white font-black uppercase px-2 py-0.5 rounded-full">Activa</span>}
+              </div>
+              {isActive && (
+                <div className="px-4 py-3 bg-white space-y-2">
+                  <div className="text-[10px] text-slate-500 font-semibold italic">🎯 {f.objetivo}</div>
+                  <div>
+                    <div className="text-[9px] font-black uppercase text-slate-400 mb-1.5">Incluye</div>
+                    {f.incluye.map((item, j) => (
+                      <div key={j} className="flex items-start gap-1.5 mb-1">
+                        <div className={`w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0 ${f.color}`} />
+                        <span className="text-[10px] text-slate-600">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <div className="text-[9px] font-black uppercase text-slate-400 mb-1.5">Entregables</div>
+                    {f.entregables.map((item, j) => (
+                      <div key={j} className="flex items-start gap-1.5 mb-1">
+                        <Icon name="CheckSquare" size={11} className={`mt-0.5 flex-shrink-0 ${f.lightText}`} />
+                        <span className="text-[10px] text-slate-600 font-medium">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+
+    // ── Phase Stepper ──────────────────────────────────────────────
+    const PhaseStepper = ({ currentFaseLabel, onChange }) => {
+      const currentIdx = getFaseIndex(currentFaseLabel);
+      return (
+        <div className="w-full">
+          <div className="flex items-center">
+            {FASES_DATA.map((f, i) => {
+              const isActive = i === currentIdx;
+              const isDone = i < currentIdx;
+              return (
+                <React.Fragment key={f.id}>
+                  <button onClick={() => onChange(FASE_LABELS[i])}
+                    title={`${f.label}: ${f.name}`}
+                    className={`flex flex-col items-center gap-1 group transition-all ${isActive ? 'scale-110' : 'hover:scale-105'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border-2 transition-all
+                  ${isActive ? f.color + ' text-white border-transparent shadow-lg' :
+                        isDone ? 'bg-emerald-500 text-white border-emerald-500' :
+                          'bg-white text-slate-400 border-slate-200 hover:border-slate-400'}`}>
+                      {isDone ? <Icon name="Check" size={13} /> : f.id}
+                    </div>
+                    <span className={`text-[8px] font-black uppercase leading-none hidden md:block ${isActive ? f.lightText : 'text-slate-400'}`}>{f.name}</span>
+                  </button>
+                  {i < FASES_DATA.length - 1 && (
+                    <div className={`flex-1 h-0.5 mx-1 transition-all ${i < currentIdx ? 'bg-emerald-400' : 'bg-slate-200'}`} />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      );
+    };
+
+    // ── App ────────────────────────────────────────────────────────
+    const App = () => {
+      const [db, setDb] = useState(loadData);
+      const [view, setView] = useState('naves');
+      const [selectedNave, setSelectedNave] = useState(null);
+      const [selectedClient, setSelectedClient] = useState(null);
+      const [toast, setToast] = useState(null);
+      const [activeTab, setActiveTab] = useState('minutas'); // 'minutas' | 'bitacora' | 'fases'
+
+      const [naveModal, setNaveModal] = useState(false);
+      const [clientModal, setClientModal] = useState(false);
+      const [editNaveModal, setEditNaveModal] = useState(null);
+      const [confirmDel, setConfirmDel] = useState(null);
+      const [settingsOpen, setSettingsOpen] = useState(false);
+      const [exportModal, setExportModal] = useState(null);
+      const [newItemName, setNewItemName] = useState('');
+      const [editManagerVal, setEditManagerVal] = useState('');
+      const [currentInternalNote, setCurrentInternalNote] = useState('');
+      const [internalArea, setInternalArea] = useState('Operaciones');
+      const [internalManager, setInternalManager] = useState('');
+      const [internalAnalyst, setInternalAnalyst] = useState('');
+      const [currentNote, setCurrentNote] = useState('');
+      const [isProcessingIA, setIsProcessingIA] = useState(false);
+      const [apiKey, setApiKey] = useState(() => localStorage.getItem('andreani_gemini_key') || '');
+      const [isRecording, setIsRecording] = useState(false);
+      const recognitionRef = useRef(null);
+      const speechSupported = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+
+      useEffect(() => { saveData(db); }, [db]);
+      useEffect(() => {
+        if (selectedClient) {
+          const u = db.clients.find(c => c.id === selectedClient.id);
+          if (u) setSelectedClient(u);
+        }
+      }, [db.clients]);
+
+      const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
+
+      const addNave = () => { if (!newItemName.trim()) return; setDb(d => ({ ...d, naves: [...d.naves, { id: uid(), name: newItemName.toUpperCase(), manager: 'Sin asignar', createdAt: Date.now() }] })); setNewItemName(''); setNaveModal(false); showToast('Nave creada'); };
+      const updateNaveManager = () => { if (!editNaveModal) return; setDb(d => ({ ...d, naves: d.naves.map(n => n.id === editNaveModal.id ? { ...n, manager: editManagerVal } : n) })); setEditNaveModal(null); showToast('Responsable actualizado'); };
+      const deleteNave = (id) => { setDb(d => ({ ...d, naves: d.naves.filter(n => n.id !== id), clients: d.clients.filter(c => c.naveId !== id), meetings: d.meetings.filter(m => !d.clients.filter(c => c.naveId === id).map(c => c.id).includes(m.clientId)) })); if (selectedNave?.id === id) { setSelectedNave(null); setView('naves'); } setConfirmDel(null); showToast('Nave eliminada', 'danger'); };
+      const addClient = () => { if (!newItemName.trim() || !selectedNave) return; setDb(d => ({ ...d, clients: [...d.clients, { id: uid(), name: newItemName.toUpperCase(), naveId: selectedNave.id, status: 'PENDIENTE', fase: FASE_LABELS[0], internalLogs: [], createdAt: Date.now() }] })); setNewItemName(''); setClientModal(false); showToast('Cliente agregado'); };
+      const updateClient = (id, field, value) => setDb(d => ({ ...d, clients: d.clients.map(c => c.id === id ? { ...c, [field]: value } : c) }));
+      const deleteClient = (id) => { setDb(d => ({ ...d, clients: d.clients.filter(c => c.id !== id), meetings: d.meetings.filter(m => m.clientId !== id) })); if (selectedClient?.id === id) { setSelectedClient(null); setView('clients'); } setConfirmDel(null); showToast('Cliente eliminado', 'danger'); };
+
+      const saveInternalEntry = () => {
+        if (!currentInternalNote.trim() || !selectedClient) return;
+        const log = { id: uid(), text: currentInternalNote, area: internalArea, responsible: internalManager, analyst: internalAnalyst, date: new Date().toLocaleString('es-AR') };
+        setDb(d => ({ ...d, clients: d.clients.map(c => c.id === selectedClient.id ? { ...c, internalLogs: [log, ...(c.internalLogs || [])] } : c) }));
+        setCurrentInternalNote(''); showToast('Bitácora guardada');
+      };
+      const deleteInternalLog = (logId) => {
+        if (!selectedClient) return;
+        setDb(d => ({ ...d, clients: d.clients.map(c => c.id === selectedClient.id ? { ...c, internalLogs: c.internalLogs.filter(l => l.id !== logId) } : c) }));
+      };
+
+      const toggleRecording = () => {
+        if (!speechSupported) { showToast('Tu navegador no soporta reconocimiento de voz', 'danger'); return; }
+        if (isRecording) { recognitionRef.current?.stop(); setIsRecording(false); }
+        else {
+          const SR = window.SpeechRecognition || window.webkitSpeechRecognition; const rec = new SR();
+          rec.lang = 'es-AR'; rec.continuous = true; rec.interimResults = true;
+          let final = currentNote;
+          rec.onresult = (e) => { let interim = ''; for (let i = e.resultIndex; i < e.results.length; i++) { if (e.results[i].isFinal) final += e.results[i][0].transcript + ' '; else interim += e.results[i][0].transcript; } setCurrentNote(final + interim); };
+          rec.onerror = (e) => { setIsRecording(false); showToast('Error: ' + e.error, 'danger'); };
+          rec.onend = () => { setIsRecording(false); setCurrentNote(final); };
+          rec.start(); recognitionRef.current = rec; setIsRecording(true); showToast('Grabación iniciada');
+        }
+      };
+
+      const generateIAMinute = async () => {
+        if (!currentNote.trim() || !selectedClient) return;
+        if (!apiKey.trim()) { setSettingsOpen(true); showToast('Configurá tu API Key primero', 'danger'); return; }
+        setIsProcessingIA(true);
+        try {
+          const faseData = FASES_DATA[getFaseIndex(selectedClient.fase)];
+          const prompt = `Eres un asistente profesional de gestión logística para Andreani.\nGenerá una minuta de reunión profesional y estructurada en español para la migración del cliente "${selectedClient.name}" que está en "${selectedClient.fase}" (${faseData?.objetivo || ''}).\nLa minuta debe incluir: fecha de hoy, asistentes (si se mencionan), puntos tratados numerados, acuerdos y compromisos, próximos pasos con responsables y fechas estimadas.\nContenido de la reunión: ${currentNote}`;
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+          const data = await res.json();
+          if (data.error) throw new Error(data.error.message);
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) { setDb(d => ({ ...d, meetings: [...d.meetings, { id: uid(), clientId: selectedClient.id, summary: text, date: new Date().toLocaleDateString('es-AR'), timestamp: Date.now() }] })); setCurrentNote(''); showToast('Minuta generada con Gemini ✓'); }
+        } catch (e) { showToast('Error IA: ' + e.message, 'danger'); }
+        finally { setIsProcessingIA(false); }
+      };
+
+      const copyMinute = (t) => navigator.clipboard.writeText(t).then(() => showToast('Copiado ✓'));
+      const deleteMinute = (id) => { setDb(d => ({ ...d, meetings: d.meetings.filter(m => m.id !== id) })); showToast('Minuta eliminada', 'danger'); };
+
+      const getStatusStyle = (s) =>
+        s === 'TERMINADO' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+          s === 'EN PROCESO' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+            'bg-slate-100 text-slate-500 border-slate-200';
+
+      const naveProgress = (id) => { const cls = db.clients.filter(c => c.naveId === id); return cls.length ? Math.round(cls.filter(c => c.status === 'TERMINADO').length / cls.length * 100) : 0; };
+      const naveStats = (id) => { const cls = db.clients.filter(c => c.naveId === id); return { total: cls.length, done: cls.filter(c => c.status === 'TERMINADO').length, inProgress: cls.filter(c => c.status === 'EN PROCESO').length, pending: cls.filter(c => c.status === 'PENDIENTE').length }; };
+      const clientMeetings = selectedClient ? db.meetings.filter(m => m.clientId === selectedClient.id).sort((a, b) => b.timestamp - a.timestamp) : [];
+
+      // Global stats
+      const globalStats = {
+        totalNaves: db.naves.length,
+        totalClients: db.clients.length,
+        done: db.clients.filter(c => c.status === 'TERMINADO').length,
+        inProgress: db.clients.filter(c => c.status === 'EN PROCESO').length,
+        pending: db.clients.filter(c => c.status === 'PENDIENTE').length,
+        totalMeetings: db.meetings.length,
+      };
+
+      return (
+        <div className="min-h-screen bg-[#F1F5F9] text-slate-900 lg:pl-20 pb-20 lg:pb-0">
+          {/* Modals */}
+          <Modal isOpen={naveModal} onClose={() => { setNaveModal(false); setNewItemName(''); }} title="Nueva Nave" placeholder="Ej: Nave 1 Pacheco..." onConfirm={addNave} value={newItemName} setValue={setNewItemName} confirmLabel="Crear Nave" />
+          <Modal isOpen={clientModal} onClose={() => { setClientModal(false); setNewItemName(''); }} title="Agregar Cliente" placeholder="Nombre del cliente..." onConfirm={addClient} value={newItemName} setValue={setNewItemName} confirmLabel="Agregar" />
+          <Modal isOpen={!!editNaveModal} onClose={() => setEditNaveModal(null)} title="Editar Responsable" placeholder="Nombre del responsable..." onConfirm={updateNaveManager} value={editManagerVal} setValue={setEditManagerVal} confirmLabel="Guardar" />
+          <ConfirmModal isOpen={!!confirmDel} onClose={() => setConfirmDel(null)} text={`Se eliminará "${confirmDel?.name}" y todos sus datos asociados.`} onConfirm={() => confirmDel?.type === 'nave' ? deleteNave(confirmDel.id) : deleteClient(confirmDel.id)} />
+          <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} apiKey={apiKey} setApiKey={setApiKey} />
+          {exportModal && <ExportModal isOpen={true} onClose={() => setExportModal(null)} meeting={exportModal.meeting} allMeetings={clientMeetings} clientName={selectedClient?.name || ''} clientFase={selectedClient?.fase || ''} clientStatus={selectedClient?.status || ''} showToast={showToast} />}
+
+          {/* Toast */}
+          {toast && (
+            <div className={`fixed top-5 right-5 px-5 py-3.5 rounded-2xl shadow-2xl z-[200] flex items-center gap-3 fade-in font-black text-xs uppercase tracking-widest text-white ${toast.type === 'danger' ? 'bg-red-600' : 'bg-emerald-500'}`}>
+              <Icon name={toast.type === 'danger' ? 'AlertTriangle' : 'Check'} size={16} />{toast.msg}
+            </div>
+          )}
+
+          {/* Sidebar */}
+          <nav className="fixed bottom-0 w-full lg:left-0 lg:top-0 lg:w-20 bg-white border-t lg:border-r border-slate-100 z-50 flex lg:flex-col items-center justify-around lg:py-6 lg:justify-start lg:gap-2 h-16 lg:h-auto shadow-sm">
+            <div className="hidden lg:flex w-10 h-10 bg-red-600 rounded-2xl items-center justify-center text-white font-black text-lg mb-6 mt-2 shadow-lg shadow-red-200">A</div>
+            <SideBtn active={view === 'naves'} onClick={() => setView('naves')} icon="LayoutDashboard" label="Naves" />
+            <SideBtn active={view === 'clients' || view === 'detail'} onClick={() => selectedNave && setView('clients')} icon="Users" label="Clientes" disabled={!selectedNave} />
+            <SideBtn active={view === 'roadmap'} onClick={() => setView('roadmap')} icon="Map" label="Fases" />
+            <div className="hidden lg:block flex-1" />
+            <button onClick={() => setSettingsOpen(true)} className={`hidden lg:flex p-3 rounded-2xl transition-all mb-2 flex-col items-center gap-1 ${apiKey ? 'text-slate-300 hover:text-slate-600' : 'text-red-400 hover:text-red-600'}`}>
+              <Icon name="Settings" size={22} />
+              <span className="text-[8px] font-black uppercase">{apiKey ? 'IA' : 'API Key'}</span>
+            </button>
+          </nav>
+
+          {/* Header */}
+          <header className="bg-white/90 backdrop-blur-xl border-b border-slate-100 px-6 py-4 sticky top-0 z-40">
+            <div className="max-w-7xl mx-auto flex justify-between items-center">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="w-1 h-5 bg-red-600 rounded-full" />
+                <h1 className="font-black text-lg tracking-tight uppercase italic">Andreani <span className="text-red-600 not-italic font-semibold ml-1">MIGRACIÓN CRM</span></h1>
+                {selectedNave && view !== 'naves' && <><span className="text-slate-300 mx-1.5">/</span><span className="text-sm font-semibold text-slate-500">{selectedNave.name}</span></>}
+                {selectedClient && view === 'detail' && <><span className="text-slate-300 mx-1.5">/</span><span className="text-sm font-semibold text-slate-500">{selectedClient.name}</span></>}
+              </div>
+              <div className="flex items-center gap-3">
+                {db.clients.length > 0 && (
+                  <div className="hidden md:flex items-center gap-2 text-xs font-semibold text-slate-400">
+                    <span className="text-emerald-600 font-black">{globalStats.done}</span> finalizados
+                    <span className="text-amber-500 font-black">{globalStats.inProgress}</span> en proceso
+                    <span className="text-slate-400 font-black">{globalStats.pending}</span> pendientes
+                  </div>
+                )}
+                <button onClick={() => setSettingsOpen(true)} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black uppercase ${apiKey ? 'bg-slate-50 text-slate-400 hover:bg-slate-100' : 'bg-red-50 text-red-600 hover:bg-red-100'} transition-all`}>
+                  <Icon name="Settings" size={14} /><span className="hidden md:block">{apiKey ? 'Config' : 'API Key'}</span>
+                </button>
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-7xl mx-auto py-8 px-4 md:px-6">
+
+            {/* NAVES */}
+            {view === 'naves' && (
+              <div className="space-y-8 fade-in">
+                {/* Stats bar */}
+                {db.naves.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[
+                      { label: 'Naves', value: globalStats.totalNaves, icon: 'Warehouse', color: 'text-slate-700', bg: 'bg-slate-100' },
+                      { label: 'Clientes', value: globalStats.totalClients, icon: 'Users', color: 'text-blue-600', bg: 'bg-blue-50' },
+                      { label: 'Finalizados', value: globalStats.done, icon: 'CheckCircle2', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                      { label: 'Minutas', value: globalStats.totalMeetings, icon: 'FileText', color: 'text-red-600', bg: 'bg-red-50' },
+                    ].map(s => (
+                      <div key={s.label} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center gap-4">
+                        <div className={`w-10 h-10 ${s.bg} ${s.color} rounded-xl flex items-center justify-center`}><Icon name={s.icon} size={20} /></div>
+                        <div>
+                          <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
+                          <div className="text-[10px] font-black uppercase text-slate-400">{s.label}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-2xl font-black uppercase italic text-slate-900 tracking-tight">Panel de Naves</h2>
+                    <p className="text-slate-400 text-sm mt-0.5">{db.naves.length} unidades operativas registradas</p>
+                  </div>
+                  <button onClick={() => setNaveModal(true)} className="bg-slate-900 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase shadow-lg flex items-center gap-2 hover:bg-red-600 transition-all">
+                    <Icon name="Plus" size={15} />Nueva Nave
+                  </button>
+                </div>
+
+                {!db.naves.length && (
+                  <div className="py-24 text-center">
+                    <div className="w-16 h-16 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto mb-4 text-slate-300"><Icon name="Warehouse" size={32} /></div>
+                    <p className="text-slate-400 font-black uppercase text-xs tracking-widest">No hay naves registradas</p>
+                    <button onClick={() => setNaveModal(true)} className="mt-4 px-6 py-3 bg-red-600 text-white rounded-xl font-black text-xs uppercase hover:bg-red-700 transition-all">Crear primera nave</button>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                  {db.naves.map(nave => {
+                    const prog = naveProgress(nave.id);
+                    const stats = naveStats(nave.id);
+                    return (
+                      <div key={nave.id} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:shadow-lg transition-all flex flex-col gap-5 group">
+                        <div className="flex justify-between items-start">
+                          <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center"><Icon name="Warehouse" size={24} /></div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <button onClick={() => { setEditNaveModal(nave); setEditManagerVal(nave.manager); }} className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all"><Icon name="UserCog" size={15} /></button>
+                            <button onClick={() => setConfirmDel({ type: 'nave', id: nave.id, name: nave.name })} className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all"><Icon name="Trash2" size={15} /></button>
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-base font-black uppercase leading-tight">{nave.name}</h3>
+                          <div className="text-[9px] font-semibold text-slate-400 mt-1">👤 {nave.manager}</div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-[9px] font-black uppercase">
+                            <span className="text-slate-400">{stats.total} clientes</span>
+                            <span className="text-emerald-500">{prog}%</span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-1.5">
+                            <div className="bg-emerald-500 h-1.5 rounded-full transition-all" style={{ width: `${prog}%` }} />
+                          </div>
+                          <div className="flex gap-3 text-[9px] font-black uppercase">
+                            <span className="text-emerald-500">{stats.done} ✓</span>
+                            <span className="text-amber-400">{stats.inProgress} en proceso</span>
+                            <span className="text-slate-300">{stats.pending} pendiente</span>
+                          </div>
+                        </div>
+                        <button onClick={() => { setSelectedNave(nave); setView('clients'); }}
+                          className="w-full py-3 bg-slate-50 rounded-2xl text-xs font-black uppercase text-slate-500 hover:bg-slate-900 hover:text-white transition-all flex items-center justify-center gap-2">
+                          Ver clientes <Icon name="ChevronRight" size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ROADMAP DE FASES */}
+            {view === 'roadmap' && (
+              <div className="space-y-6 fade-in">
+                <div>
+                  <h2 className="text-2xl font-black uppercase italic text-slate-900 tracking-tight">Roadmap de Migración</h2>
+                  <p className="text-slate-400 text-sm mt-0.5">5 fases para la migración al CRM Andreani</p>
+                </div>
+
+                {/* Timeline horizontal */}
+                <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm overflow-x-auto">
+                  <div className="flex items-stretch gap-0 min-w-[700px]">
+                    {FASES_DATA.map((f, i) => (
+                      <React.Fragment key={f.id}>
+                        <div className="flex-1 flex flex-col">
+                          <div className={`${f.color} text-white rounded-t-2xl p-4`}>
+                            <div className="text-[9px] font-black uppercase opacity-70">{f.label} · {f.duration}</div>
+                            <div className="text-base font-black uppercase mt-0.5">{f.name}</div>
+                          </div>
+                          <div className="flex-1 bg-slate-50 rounded-b-2xl p-4 space-y-2 border border-t-0 border-slate-100">
+                            <div className="text-[10px] text-slate-500 italic leading-tight">{f.objetivo}</div>
+                            <div className="space-y-1 mt-2">
+                              {f.incluye.map((item, j) => (
+                                <div key={j} className="flex items-start gap-1.5">
+                                  <div className={`w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0 ${f.color}`} />
+                                  <span className="text-[9px] text-slate-600 leading-tight">{item}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="pt-2 border-t border-slate-200 mt-2">
+                              <div className="text-[8px] font-black uppercase text-slate-400 mb-1">Entregables</div>
+                              {f.entregables.map((e, j) => (
+                                <div key={j} className={`text-[9px] font-semibold ${f.lightText} leading-tight`}>✓ {e}</div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        {i < FASES_DATA.length - 1 && (
+                          <div className="flex items-center px-1 z-10">
+                            <div className="w-5 h-5 bg-slate-200 rounded-full flex items-center justify-center">
+                              <Icon name="ChevronRight" size={12} className="text-slate-400" />
+                            </div>
+                          </div>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Duración total */}
+                <div className="bg-slate-900 text-white rounded-3xl p-6 flex items-center justify-between flex-wrap gap-4">
+                  <div>
+                    <div className="text-xs font-black uppercase text-slate-400">Duración estimada total</div>
+                    <div className="text-3xl font-black mt-1">8 Semanas</div>
+                    <div className="text-slate-400 text-sm">por cliente migrado</div>
+                  </div>
+                  <div className="flex gap-4 flex-wrap">
+                    {FASES_DATA.map(f => (
+                      <div key={f.id} className="text-center">
+                        <div className={`w-10 h-10 ${f.color} rounded-xl flex items-center justify-center mx-auto mb-1`}><Icon name={f.icon} size={18} /></div>
+                        <div className="text-[9px] font-black text-slate-400">{f.duration}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* CLIENTES */}
+            {view === 'clients' && selectedNave && (
+              <div className="space-y-6 fade-in">
+                <div className="flex justify-between items-center flex-wrap gap-3">
+                  <button onClick={() => setView('naves')} className="flex items-center gap-2 text-slate-400 font-black text-xs uppercase hover:text-red-600 transition-all">
+                    <Icon name="ChevronLeft" size={15} />Volver a naves
+                  </button>
+                  <button onClick={() => setClientModal(true)} className="bg-red-600 text-white px-5 py-3 rounded-xl font-black text-xs uppercase shadow-lg flex items-center gap-2 hover:bg-red-700 transition-all">
+                    <Icon name="UserPlus" size={15} />Agregar Cliente
+                  </button>
+                </div>
+
+                <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+                    <div>
+                      <h2 className="text-2xl font-black uppercase italic tracking-tight">{selectedNave.name}</h2>
+                      <div className="text-xs text-slate-400 mt-1 font-semibold">👤 Responsable: {selectedNave.manager}</div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="text-[9px] font-black uppercase text-slate-400">Progreso</div>
+                        <div className="text-2xl font-black text-emerald-500">{naveProgress(selectedNave.id)}%</div>
+                      </div>
+                      <div className="w-16 h-16 relative">
+                        <svg className="w-16 h-16 -rotate-90" viewBox="0 0 36 36">
+                          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f1f5f9" strokeWidth="3" />
+                          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#10b981" strokeWidth="3"
+                            strokeDasharray={`${naveProgress(selectedNave.id)} 100`} strokeLinecap="round" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-[9px] font-black text-slate-300 uppercase tracking-widest border-b border-slate-50">
+                          <th className="pb-4 text-left">Cliente</th>
+                          <th className="pb-4 text-left">Fase</th>
+                          <th className="pb-4 text-left">Estado</th>
+                          <th className="pb-4 text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {db.clients.filter(c => c.naveId === selectedNave.id).map(client => {
+                          const faseIdx = getFaseIndex(client.fase);
+                          const faseInfo = FASES_DATA[faseIdx];
+                          return (
+                            <tr key={client.id} className="group hover:bg-slate-50/50 transition-all">
+                              <td className="py-5 font-black text-slate-800 uppercase">{client.name}</td>
+                              <td className="py-5">
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-2 h-2 rounded-full ${faseInfo?.color}`} />
+                                  <select className={`${faseInfo?.lightBg} ${faseInfo?.lightText} text-[10px] font-black px-3 py-2 rounded-xl border border-transparent uppercase cursor-pointer focus:outline-none`}
+                                    value={client.fase || FASE_LABELS[0]} onChange={e => updateClient(client.id, 'fase', e.target.value)}>
+                                    {FASE_LABELS.map(f => <option key={f} value={f}>{f}</option>)}
+                                  </select>
+                                </div>
+                              </td>
+                              <td className="py-5">
+                                <select className={`text-[10px] font-black uppercase px-3 py-2 rounded-xl border-2 ${getStatusStyle(client.status)} cursor-pointer focus:outline-none`}
+                                  value={client.status || 'PENDIENTE'} onChange={e => updateClient(client.id, 'status', e.target.value)}>
+                                  <option value="PENDIENTE">PENDIENTE</option>
+                                  <option value="EN PROCESO">EN PROCESO</option>
+                                  <option value="TERMINADO">TERMINADO</option>
+                                </select>
+                              </td>
+                              <td className="py-5 text-right">
+                                <div className="flex gap-1.5 justify-end">
+                                  <button onClick={() => setConfirmDel({ type: 'client', id: client.id, name: client.name })} className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"><Icon name="Trash2" size={14} /></button>
+                                  <button onClick={() => { setSelectedClient(client); setView('detail'); setActiveTab('minutas'); }}
+                                    className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-red-600 transition-all flex items-center gap-1.5">
+                                    <Icon name="MessageSquare" size={14} />Ver detalle
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {!db.clients.filter(c => c.naveId === selectedNave.id).length && (
+                          <tr><td colSpan="4" className="py-16 text-center text-slate-300 font-black uppercase text-xs italic">No hay clientes en esta nave</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* DETALLE */}
+            {view === 'detail' && selectedClient && (
+              <div className="space-y-5 fade-in">
+                <button onClick={() => setView('clients')} className="flex items-center gap-2 text-slate-400 font-black text-xs uppercase hover:text-red-600 transition-all">
+                  <Icon name="ChevronLeft" size={14} />Volver a clientes
+                </button>
+
+                {/* Client header */}
+                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                  <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
+                    <div>
+                      <div className="flex items-center gap-3 mb-1">
+                        <h2 className="text-2xl font-black uppercase italic tracking-tight">{selectedClient.name}</h2>
+                        <select className={`text-[10px] font-black uppercase px-3 py-2 rounded-xl border-2 ${getStatusStyle(selectedClient.status)} cursor-pointer focus:outline-none`}
+                          value={selectedClient.status} onChange={e => updateClient(selectedClient.id, 'status', e.target.value)}>
+                          <option value="PENDIENTE">PENDIENTE</option>
+                          <option value="EN PROCESO">EN PROCESO</option>
+                          <option value="TERMINADO">TERMINADO</option>
+                        </select>
+                      </div>
+                      <div className="text-xs text-slate-400 font-semibold">{selectedNave?.name}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => setConfirmDel({ type: 'client', id: selectedClient.id, name: selectedClient.name })}
+                        className="p-2.5 bg-red-50 text-red-400 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all">
+                        <Icon name="Trash2" size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  {/* Phase stepper */}
+                  <PhaseStepper currentFaseLabel={selectedClient.fase} onChange={v => updateClient(selectedClient.id, 'fase', v)} />
+                </div>
+
+                {/* Tabs */}
+                <div className="flex gap-1 bg-white rounded-2xl p-1 border border-slate-100 shadow-sm w-fit">
+                  {[
+                    { id: 'minutas', label: 'Minutas IA', icon: 'Sparkles' },
+                    { id: 'bitacora', label: 'Bitácora', icon: 'ClipboardList' },
+                    { id: 'fases', label: 'Fases', icon: 'Map' },
+                  ].map(tab => (
+                    <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${activeTab === tab.id ? 'bg-slate-900 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}>
+                      <Icon name={tab.icon} size={14} />{tab.label}
+                      {tab.id === 'minutas' && clientMeetings.length > 0 && <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-red-100 text-red-500'}`}>{clientMeetings.length}</span>}
+                      {tab.id === 'bitacora' && (selectedClient.internalLogs || []).length > 0 && <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>{(selectedClient.internalLogs || []).length}</span>}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Tab: Minutas */}
+                {activeTab === 'minutas' && (
+                  <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+                    {/* IA panel */}
+                    <div className="lg:col-span-3">
+                      <div className="bg-slate-900 p-7 rounded-3xl shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-red-600/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+                        <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
+                          <div className="flex items-center gap-3 text-white">
+                            <Icon name="BrainCircuit" size={20} className="text-red-400" />
+                            <div>
+                              <h3 className="font-black text-lg uppercase italic leading-none tracking-tight">IA Asistente</h3>
+                              <p className="text-slate-500 text-[9px] font-black uppercase tracking-widest mt-0.5">Minutas con Gemini AI</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            {!apiKey && <button onClick={() => setSettingsOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-full font-black text-[10px] uppercase bg-red-600 text-white animate-pulse"><Icon name="AlertTriangle" size={12} />API Key</button>}
+                            <button onClick={toggleRecording} className={`flex items-center gap-1.5 px-4 py-2 rounded-full font-black text-[10px] uppercase transition-all ${isRecording ? 'bg-red-600 text-white pulse-rec' : speechSupported ? 'bg-slate-800 text-slate-400 hover:text-white' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}>
+                              <Icon name={isRecording ? 'MicOff' : 'Mic'} size={13} />{isRecording ? 'Detener' : 'Grabar'}
+                            </button>
+                          </div>
+                        </div>
+                        {isRecording && <div className="mb-4 px-4 py-2.5 bg-red-600/20 border border-red-600/30 rounded-xl flex items-center gap-2.5"><div className="w-2 h-2 bg-red-500 rounded-full pulse-rec" /><span className="text-red-400 text-[10px] font-black uppercase">Escuchando en español...</span></div>}
+                        <textarea className="w-full h-36 p-5 bg-slate-800/60 border border-slate-700 rounded-2xl text-white text-sm placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-red-600 resize-none"
+                          placeholder="Describí los puntos de la reunión o usá la grabación de voz..." value={currentNote} onChange={e => setCurrentNote(e.target.value)} />
+                        <div className="flex gap-2.5 mt-4">
+                          <button onClick={() => setCurrentNote('')} className="px-4 py-3.5 rounded-xl font-black text-[10px] uppercase bg-slate-800 text-slate-400 hover:text-white transition-all">Limpiar</button>
+                          <button onClick={generateIAMinute} disabled={isProcessingIA || !currentNote.trim()}
+                            className="flex-1 py-3.5 rounded-xl font-black uppercase text-xs tracking-widest bg-white text-slate-900 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                            {isProcessingIA ? <><Icon name="Loader2" size={16} className="animate-spin" />Analizando...</> : <><Icon name="Sparkles" size={16} />Generar Minuta</>}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Minutas lista */}
+                    <div className="lg:col-span-2 space-y-4">
+                      {clientMeetings.length > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black uppercase text-slate-400">{clientMeetings.length} minuta{clientMeetings.length !== 1 ? 's' : ''}</span>
+                          <button onClick={() => setExportModal({ meeting: null, all: true })}
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-black text-[10px] uppercase bg-slate-900 text-white hover:bg-red-600 transition-all">
+                            <Icon name="Download" size={13} />Exportar todas
+                          </button>
+                        </div>
+                      )}
+                      <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1 custom-scrollbar">
+                        {clientMeetings.map(m => (
+                          <div key={m.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className="p-2 bg-red-50 text-red-600 rounded-xl"><Icon name="FileText" size={16} /></div>
+                                <div className="text-[10px] font-black text-slate-400 uppercase">{m.date}</div>
+                              </div>
+                              <div className="flex gap-0.5">
+                                <button onClick={() => copyMinute(m.summary)} className="p-1.5 text-slate-300 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-all"><Icon name="Copy" size={13} /></button>
+                                <button onClick={() => setExportModal({ meeting: m, all: false })} className="p-1.5 text-slate-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-all"><Icon name="Download" size={13} /></button>
+                                <button onClick={() => deleteMinute(m.id)} className="p-1.5 text-slate-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-all"><Icon name="Trash2" size={13} /></button>
+                              </div>
+                            </div>
+                            <p className="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed line-clamp-6">{m.summary}</p>
+                          </div>
+                        ))}
+                        {!clientMeetings.length && (
+                          <div className="py-14 text-center">
+                            <Icon name="FileText" size={28} className="text-slate-200 mx-auto mb-3" />
+                            <p className="text-slate-300 font-black uppercase text-xs">No hay minutas generadas</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab: Bitácora */}
+                {activeTab === 'bitacora' && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                      <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><Icon name="ClipboardList" size={14} />Nueva entrada</h4>
+                      <div className="relative">
+                        <select className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-semibold appearance-none cursor-pointer focus:border-red-500 focus:outline-none transition-all"
+                          value={internalArea} onChange={e => setInternalArea(e.target.value)}>
+                          <option>Operaciones</option><option>Cliente</option><option>Comercial</option><option>Sistemas / IT</option><option>Centro de Contacto</option>
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><Icon name="ChevronDown" size={15} /></div>
+                      </div>
+                      <input className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-semibold focus:border-red-500 focus:outline-none transition-all"
+                        placeholder="Responsable..." value={internalManager} onChange={e => setInternalManager(e.target.value)} />
+                      <input className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-semibold focus:border-red-500 focus:outline-none transition-all"
+                        placeholder="Analista..." value={internalAnalyst} onChange={e => setInternalAnalyst(e.target.value)} />
+                      <textarea className="w-full p-4 bg-slate-900 text-white rounded-2xl text-xs h-28 resize-none focus:ring-2 focus:ring-red-600 focus:outline-none transition-all"
+                        placeholder="Anotar respuesta técnica, observación o acción..." value={currentInternalNote} onChange={e => setCurrentInternalNote(e.target.value)} />
+                      <button onClick={saveInternalEntry} className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-xs uppercase hover:bg-red-700 shadow-lg transition-all active:scale-95">
+                        Guardar entrada
+                      </button>
+                    </div>
+
+                    <div className="space-y-3 max-h-[540px] overflow-y-auto pr-1 custom-scrollbar">
+                      {(selectedClient.internalLogs || []).length === 0 && (
+                        <div className="py-14 text-center bg-white rounded-3xl border border-slate-100">
+                          <Icon name="ClipboardList" size={28} className="text-slate-200 mx-auto mb-3" />
+                          <p className="text-slate-300 font-black uppercase text-xs">Sin entradas en bitácora</p>
+                        </div>
+                      )}
+                      {(selectedClient.internalLogs || []).map(log => (
+                        <div key={log.id} className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm group relative">
+                          <button onClick={() => deleteInternalLog(log.id)} className="absolute top-3 right-3 p-1.5 text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50 rounded-lg"><Icon name="X" size={12} /></button>
+                          <div className="flex justify-between text-[9px] font-black uppercase mb-2 pr-6">
+                            <span className="text-red-500">{log.area}</span>
+                            <span className="text-slate-400">{log.date}</span>
+                          </div>
+                          <p className="text-xs text-slate-700 font-medium mb-2 leading-relaxed">{log.text}</p>
+                          <div className="text-[9px] font-black uppercase text-slate-400">
+                            {log.responsible && `👤 ${log.responsible}`}{log.analyst && ` · 🔬 ${log.analyst}`}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab: Fases */}
+                {activeTab === 'fases' && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <div>
+                      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                        <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest mb-4">Progreso de fases — {selectedClient.name}</h4>
+                        <FaseRoadmap currentFaseIdx={getFaseIndex(selectedClient.fase)} />
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                        <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest mb-4">Cambiar fase actual</h4>
+                        <div className="grid grid-cols-1 gap-2">
+                          {FASE_LABELS.map((fase, i) => {
+                            const f = FASES_DATA[i];
+                            const isActive = selectedClient.fase === fase;
+                            return (
+                              <button key={fase} onClick={() => updateClient(selectedClient.id, 'fase', fase)}
+                                className={`flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all ${isActive ? `${f.color} text-white border-transparent shadow-lg` : `border-slate-100 hover:border-slate-300 bg-white`}`}>
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 ${isActive ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>{f.id}</div>
+                                <div className="flex-1 min-w-0">
+                                  <div className={`text-xs font-black uppercase ${isActive ? 'text-white' : 'text-slate-700'}`}>{f.label}: {f.name}</div>
+                                  <div className={`text-[10px] mt-0.5 truncate ${isActive ? 'text-white/70' : 'text-slate-400'}`}>{f.duration} · {f.objetivo.slice(0, 50)}...</div>
+                                </div>
+                                {isActive && <Icon name="CheckCircle2" size={18} className="text-white flex-shrink-0" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </main>
+        </div>
+      );
+    };
+
+    const SideBtn = ({ active, onClick, icon, label, disabled }) => (
+      <button onClick={onClick} disabled={disabled}
+        className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all ${active ? 'bg-red-50 text-red-600' : disabled ? 'text-slate-200 cursor-not-allowed' : 'text-slate-300 hover:text-slate-600 hover:bg-slate-50'}`}>
+        <Icon name={icon} size={22} />
+        <span className="text-[8px] font-black uppercase hidden lg:block">{label}</span>
+      </button>
+    );
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+
+</html>
